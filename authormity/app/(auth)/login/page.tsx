@@ -102,6 +102,8 @@ export default function LoginPage() {
                     {/* Clerk email fallback */}
                     <div className="flex justify-center">
                         <SignIn
+                            afterSignInUrl="/dashboard"
+                            afterSignUpUrl="/dashboard"
                             appearance={{
                                 elements: {
                                     rootBox: 'w-full',
