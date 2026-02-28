@@ -1,8 +1,6 @@
 'use client';
 
 import { SignIn } from '@clerk/nextjs';
-import { Button } from '@/components/ui/button';
-import { Linkedin } from 'lucide-react';
 import Link from 'next/link';
 
 /**
@@ -50,15 +48,13 @@ function MarketingPanel() {
  *
  * Mobile: full-screen sign-in panel only.
  *
- * Provides LinkedIn OAuth as the primary sign-in method
- * (redirects to /api/auth/linkedin), with Clerk's <SignIn />
- * component below as an email fallback.
+ * Authentication is handled entirely by Clerk's <SignIn /> component,
+ * which includes LinkedIn OAuth as a social login option alongside
+ * email/password. The custom /api/auth/linkedin route is separate —
+ * it connects a LinkedIn account for publishing AFTER the user is
+ * already logged in, and lives on the /settings page.
  */
 export default function LoginPage() {
-    function handleLinkedInSignIn() {
-        window.location.href = '/api/auth/linkedin';
-    }
-
     return (
         <div className="flex min-h-screen">
             <MarketingPanel />
@@ -66,12 +62,11 @@ export default function LoginPage() {
             {/* Sign-in panel */}
             <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-12 lg:w-1/2">
                 <div className="w-full max-w-md space-y-8">
-                    {/* Logo — visible on mobile (marketing panel hidden) */}
+                    {/* Logo — visible on mobile only */}
                     <p className="text-center text-2xl font-bold text-[#0A66C2] lg:hidden">
                         Authormity
                     </p>
 
-                    {/* Header */}
                     <div className="space-y-2 text-center">
                         <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
                         <p className="text-sm text-muted-foreground">
@@ -79,44 +74,25 @@ export default function LoginPage() {
                         </p>
                     </div>
 
-                    {/* LinkedIn primary sign-in */}
-                    <Button
-                        onClick={handleLinkedInSignIn}
-                        className="w-full bg-[#0A66C2] text-white hover:bg-[#004182] active:bg-[#003875] transition-colors"
-                        size="lg"
-                    >
-                        <Linkedin className="mr-2 h-5 w-5" />
-                        Continue with LinkedIn
-                    </Button>
-
-                    {/* Divider */}
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-border" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">or</span>
-                        </div>
-                    </div>
-
-                    {/* Clerk email fallback */}
+                    {/* Clerk handles all auth — LinkedIn OAuth button is shown
+              automatically when LinkedIn is enabled as a social provider
+              in the Clerk dashboard. */}
                     <div className="flex justify-center">
                         <SignIn
+                            afterSignInUrl="/dashboard"
+                            afterSignUpUrl="/dashboard"
                             appearance={{
                                 elements: {
                                     rootBox: 'w-full',
                                     card: 'shadow-none border border-border rounded-lg p-4 w-full',
                                     headerTitle: 'hidden',
                                     headerSubtitle: 'hidden',
-                                    socialButtonsBlockButton: 'hidden',
-                                    dividerRow: 'hidden',
                                     footer: 'hidden',
                                 },
                             }}
                         />
                     </div>
 
-                    {/* Terms */}
                     <p className="text-center text-xs text-muted-foreground">
                         By signing in you agree to our{' '}
                         <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
