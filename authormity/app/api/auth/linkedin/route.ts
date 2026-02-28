@@ -2,31 +2,42 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
 /**
- * Initiates LinkedIn OAuth by redirecting to LinkedIn's authorization endpoint.
- * Requires an active Clerk session.
- * @param request - The incoming GET request.
+ * GET /api/auth/linkedin
+ *
+ * Initiates the LinkedIn OAuth 2.0 authorization flow for a logged-in user.
+ * Generates a CSRF state token, stores it in a secure httpOnly cookie,
+ * and redirects the user to LinkedIn's authorization endpoint.
+ *
+ * Requires an active Clerk session — returns 401 if not authenticated.
  */
-export async function GET(request: Request): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse> {
     const { userId } = await auth();
 
     if (!userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const clientId = process.env.LINKEDIN_CLIENT_ID!;
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`;
-    const { searchParams } = new URL(request.url);
-    const redirectTo = searchParams.get('redirectTo') ?? '/dashboard';
+    const state = crypto.randomUUID();
 
-    const state = Buffer.from(JSON.stringify({ userId, redirectTo })).toString('base64');
-    const scope = ['openid', 'profile', 'email', 'w_member_social'].join(' ');
+    const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: process.env.LINKEDIN_CLIENT_ID!,
+        redirect_uri: process.env.LINKEDIN_REDIRECT_URI!,
+        state,
+        scope: 'openid profile email w_member_social',
+    });
 
-    const authUrl = new URL('https://www.linkedin.com/oauth/v2/authorization');
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('scope', scope);
-    authUrl.searchParams.set('state', state);
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
 
-    return NextResponse.redirect(authUrl.toString());
+    const response = NextResponse.redirect(authUrl);
+
+    response.cookies.set('linkedin_oauth_state', state, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 600, // 10 minutes
+        path: '/',
+    });
+
+    return response;
 }

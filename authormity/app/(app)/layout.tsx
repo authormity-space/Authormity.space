@@ -15,6 +15,7 @@ const navLinks = [
     { label: 'Analytics', href: '/analytics' },
     { label: 'Repurpose', href: '/repurpose' },
     { label: 'Engage', href: '/engage' },
+    { label: 'Settings', href: '/settings' },
 ] as const;
 
 /**
@@ -93,7 +94,7 @@ function Navbar() {
 
 /**
  * Protected layout for all dashboard/app pages.
- * Renders a sticky top navbar with logo, nav links, and Clerk UserButton.
+ * Renders a sticky top navbar with logo, nav links (including Settings), and Clerk UserButton.
  * Routes within this group are protected by middleware.ts.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
