@@ -8,6 +8,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ── CORE ────────────────────────────────────────────────────────────────────
+
 model Profile {
   id               String    @id @default(cuid())
   clerkId          String    @unique
@@ -20,13 +22,27 @@ model Profile {
   voiceProfile     Json?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+
   posts            Post[]
+  swipeFiles       SwipeFile[]
+  viralPostSaves   ViralPostSave[]
+  carousels        CarouselProject[]
+  scheduledPosts   ScheduledPost[]
+  postAnalytics    PostAnalytics[]
+  repurposeJobs    RepurposeJob[]
+  engagementQueue  EngagementQueue[]
+  engagementLogs   EngagementLog[]
+  topCommenters    TopCommenter[]
+  commenterLogs    CommenterLog[]
+  commentTemplates CommentTemplate[]
+  ownedTeams       Team[]            @relation("TeamOwner")
+  teamMemberships  TeamMember[]
 }
 
 model Post {
   id          String    @id @default(cuid())
   profileId   String
-  profile     Profile   @relation(fields: [profileId], references: [id])
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
   content     String
   status      String    @default("draft")
   scheduledAt DateTime?
@@ -39,4 +55,244 @@ model Post {
   @@index([profileId])
   @@index([status])
   @@index([scheduledAt])
+}
+
+// ── INSPIRATION MODULE ───────────────────────────────────────────────────────
+
+model SwipeFile {
+  id            String   @id @default(cuid())
+  profileId     String
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  sourceUrl     String?
+  content       String
+  authorName    String?
+  folder        String   @default("Uncategorized")
+  tags          String[]
+  aiHookStyle   String?
+  aiTone        String?
+  aiContentType String?
+  notes         String?
+  timesUsed     Int      @default(0)
+  isTeamShared  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([profileId])
+  @@index([folder])
+}
+
+model ViralPost {
+  id             String          @id @default(cuid())
+  content        String
+  niche          String[]
+  contentType    String
+  engagementTier String
+  hookStyle      String?
+  wordCount      Int
+  saveCount      Int             @default(0)
+  isFeatured     Boolean         @default(false)
+  addedAt        DateTime        @default(now())
+  saves          ViralPostSave[]
+
+  @@index([niche])
+  @@index([contentType])
+  @@index([engagementTier])
+}
+
+model ViralPostSave {
+  id          String    @id @default(cuid())
+  profileId   String
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  viralPostId String
+  viralPost   ViralPost @relation(fields: [viralPostId], references: [id], onDelete: Cascade)
+  savedAt     DateTime  @default(now())
+
+  @@unique([profileId, viralPostId])
+  @@index([profileId])
+}
+
+// ── CONTENT CREATION MODULE ──────────────────────────────────────────────────
+
+model CarouselProject {
+  id                   String   @id @default(cuid())
+  profileId            String
+  profile              Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title                String
+  slideCount           Int      @default(1)
+  slidesJson           Json
+  templateName         String?
+  brandPrimaryColour   String   @default("#0A66C2")
+  brandSecondaryColour String   @default("#004182")
+  fontName             String   @default("Inter")
+  status               String   @default("draft")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([profileId])
+  @@index([status])
+}
+
+model ScheduledPost {
+  id          String    @id @default(cuid())
+  profileId   String
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  content     String
+  scheduledAt DateTime
+  status      String    @default("pending")
+  publishedAt DateTime?
+  errorMsg    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([profileId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+// ── ANALYTICS MODULE ─────────────────────────────────────────────────────────
+
+model PostAnalytics {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  postId      String   @unique
+  impressions Int      @default(0)
+  reactions   Int      @default(0)
+  comments    Int      @default(0)
+  reposts     Int      @default(0)
+  clicks      Int      @default(0)
+  fetchedAt   DateTime @default(now())
+
+  @@index([profileId])
+  @@index([fetchedAt])
+}
+
+// ── REPURPOSE MODULE ─────────────────────────────────────────────────────────
+
+model RepurposeJob {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  sourceType  String
+  sourceUrl   String?
+  sourceText  String?
+  outputPost  String?
+  status      String   @default("pending")
+  errorMsg    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId])
+  @@index([status])
+  @@index([sourceType])
+}
+
+// ── ENGAGEMENT MODULE ────────────────────────────────────────────────────────
+
+model EngagementQueue {
+  id            String          @id @default(cuid())
+  profileId     String
+  profile       Profile         @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  personName    String
+  linkedinUrl   String
+  category      String?
+  priority      Int             @default(0)
+  lastEngagedAt DateTime?
+  notes         String?
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  logs          EngagementLog[]
+
+  @@index([profileId])
+  @@index([isActive])
+}
+
+model EngagementLog {
+  id              String          @id @default(cuid())
+  profileId       String
+  profile         Profile         @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  queuePersonId   String
+  queuePerson     EngagementQueue @relation(fields: [queuePersonId], references: [id], onDelete: Cascade)
+  engagedAt       DateTime        @default(now())
+  commentUsedText String?
+
+  @@index([profileId])
+  @@index([queuePersonId])
+}
+
+model TopCommenter {
+  id               String        @id @default(cuid())
+  profileId        String
+  profile          Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  commenterName    String
+  linkedinUrl      String
+  linkedinHeadline String?
+  commentCount     Int           @default(0)
+  category         String?
+  reciprocityCount Int           @default(0)
+  lastCommentDate  DateTime?
+  firstCommentDate DateTime?
+  isTopCommenter   Boolean       @default(false)
+  notes            String?
+  reminderSentAt   DateTime?
+  createdAt        DateTime      @default(now())
+  logs             CommenterLog[]
+
+  @@index([profileId])
+  @@index([isTopCommenter])
+}
+
+model CommenterLog {
+  id          String       @id @default(cuid())
+  profileId   String
+  profile     Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  commenterId String
+  commenter   TopCommenter @relation(fields: [commenterId], references: [id], onDelete: Cascade)
+  postId      String?
+  commentDate DateTime
+  loggedAt    DateTime     @default(now())
+
+  @@index([profileId])
+  @@index([commenterId])
+}
+
+model CommentTemplate {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  label     String
+  content   String
+  intent    String
+  useCount  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([profileId])
+  @@index([intent])
+}
+
+// ── TEAM MODULE ──────────────────────────────────────────────────────────────
+
+model Team {
+  id        String       @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     Profile      @relation("TeamOwner", fields: [ownerId], references: [id])
+  plan      String       @default("team")
+  createdAt DateTime     @default(now())
+  members   TeamMember[]
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  role      String   @default("member")
+  joinedAt  DateTime @default(now())
+
+  @@unique([teamId, profileId])
+  @@index([teamId])
+  @@index([profileId])
 }
