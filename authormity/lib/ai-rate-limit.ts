@@ -6,6 +6,7 @@ const LIMITS: Record<string, number> = {
     repurpose: 10,
     comment_generate: 30,
     breakdown: 20,
+    linkedin_publish: 10,
 };
 
 const DEFAULT_LIMIT = 15;
