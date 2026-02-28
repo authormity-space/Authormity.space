@@ -84,9 +84,7 @@ export default function LoginPage() {
                             appearance={{
                                 elements: {
                                     rootBox: 'w-full',
-                                    card: 'shadow-none border border-border rounded-lg p-4 w-full',
-                                    headerTitle: 'hidden',
-                                    headerSubtitle: 'hidden',
+                                    card: 'shadow-none p-4 w-full',
                                     footer: 'hidden',
                                 },
                             }}
