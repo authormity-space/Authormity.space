@@ -1,12 +1,14 @@
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-
-interface OpenRouterMessage {
-    role: 'system' | 'user' | 'assistant';
-    content: string;
+export interface GenerateOptions {
+    prompt: string;
+    systemPrompt: string;
+    temperature?: number;
+    maxTokens?: number;
 }
 
 interface OpenRouterChoice {
-    message: OpenRouterMessage;
+    message: {
+        content: string;
+    };
 }
 
 interface OpenRouterResponse {
@@ -14,50 +16,63 @@ interface OpenRouterResponse {
 }
 
 /**
- * Calls the OpenRouter API to generate text from a prompt.
- * Uses the model specified in the OPENROUTER_MODEL environment variable.
- * @param prompt - The user-facing prompt to send to the model.
- * @param systemPrompt - The system instruction that sets the model's behavior.
- * @param temperature - Sampling temperature (0–2). Higher = more creative.
- * @returns The generated text content from the model.
- * @throws An error with a readable message if the API call fails.
+ * Sends a chat completion request to the OpenRouter API.
+ *
+ * @param options - Generation parameters including prompt, system prompt,
+ *   optional temperature (default 0.7) and maxTokens (default 1000).
+ * @returns The generated text from the model.
+ * @throws A user-friendly error if the API call fails. Full details are
+ *   logged server-side only — the API key is never logged.
  */
-export async function generateText(
-    prompt: string,
-    systemPrompt: string,
-    temperature: number = 0.7
-): Promise<string> {
-    const model = process.env.OPENROUTER_MODEL ?? 'arcee-ai/arcee-trinity';
-    const apiKey = process.env.OPENROUTER_API_KEY!;
+export async function generateText(options: GenerateOptions): Promise<string> {
+    const { prompt, systemPrompt, temperature = 0.7, maxTokens = 1000 } = options;
 
-    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-            'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'https://authormity.space',
-            'X-Title': 'Authormity',
-        },
-        body: JSON.stringify({
-            model,
-            temperature,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: prompt },
-            ],
-        }),
-    });
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    const model = process.env.OPENROUTER_MODEL ?? 'arcee-ai/arcee-trinity';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://authormity.space';
+
+    if (!apiKey) {
+        throw new Error('OPENROUTER_API_KEY is not configured.');
+    }
+
+    let response: Response;
+
+    try {
+        response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'HTTP-Referer': appUrl,
+                'X-Title': 'Authormity',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: prompt },
+                ],
+                temperature,
+                max_tokens: maxTokens,
+            }),
+        });
+    } catch (err) {
+        console.error('OpenRouter fetch failed:', err instanceof Error ? err.message : err);
+        throw new Error('AI generation failed. Please try again.');
+    }
 
     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenRouter API error (${response.status}): ${errorText}`);
+        const errText = await response.text();
+        console.error(`OpenRouter error (${response.status}):`, errText);
+        throw new Error('AI generation failed. Please try again.');
     }
 
     const data = (await response.json()) as OpenRouterResponse;
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-        throw new Error('OpenRouter returned an empty response.');
+        console.error('OpenRouter returned empty content:', JSON.stringify(data));
+        throw new Error('AI generation failed. Please try again.');
     }
 
     return content;
