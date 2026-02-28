@@ -126,7 +126,8 @@ export async function publishPost(profileId: string, content: string): Promise<s
 
     if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`LinkedIn publish failed (${res.status}): ${errText}`);
+        console.error(`LinkedIn publish failed (${res.status}):`, errText);
+        throw new Error('Failed to publish post. Please try again.');
     }
 
     const data = (await res.json()) as UgcPostResponse;
