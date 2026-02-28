@@ -11,7 +11,7 @@ export const PLANS = {
     pro: {
         label: 'Pro',
         credits: 200,
-        postLimit: -1, // unlimited
+        postLimit: -1,
     },
     team: {
         label: 'Team',

@@ -1,70 +1,24 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export async function middleware(request: NextRequest) {
-    let response = NextResponse.next({
-        request: {
-            headers: request.headers,
-        },
-    });
+const isPublicRoute = createRouteMatcher([
+    '/login(.*)',
+    '/api/health',
+    '/api/webhooks/clerk',
+]);
 
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                get(name: string) {
-                    return request.cookies.get(name)?.value;
-                },
-                set(name: string, value: string, options: CookieOptions) {
-                    request.cookies.set({ name, value, ...options });
-                    response = NextResponse.next({
-                        request: { headers: request.headers },
-                    });
-                    response.cookies.set({ name, value, ...options });
-                },
-                remove(name: string, options: CookieOptions) {
-                    request.cookies.set({ name, value: '', ...options });
-                    response = NextResponse.next({
-                        request: { headers: request.headers },
-                    });
-                    response.cookies.set({ name, value: '', ...options });
-                },
-            },
-        }
-    );
-
-    const {
-        data: { session },
-    } = await supabase.auth.getSession();
-
-    const { pathname } = request.nextUrl;
-
-    const isProtectedRoute = pathname.startsWith('/dashboard') ||
-        pathname.startsWith('/create') ||
-        pathname.startsWith('/swipe') ||
-        pathname.startsWith('/viral') ||
-        pathname.startsWith('/carousel') ||
-        pathname.startsWith('/schedule') ||
-        pathname.startsWith('/analytics') ||
-        pathname.startsWith('/repurpose') ||
-        pathname.startsWith('/engage');
-
-    if (isProtectedRoute && !session) {
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('redirectTo', pathname);
-        return NextResponse.redirect(loginUrl);
+/**
+ * Clerk-powered middleware for route authentication.
+ * Public routes (/login, /api/health, /api/webhooks/clerk) are accessible without a session.
+ * All other routes require an authenticated Clerk session.
+ */
+export default clerkMiddleware(async (auth, request) => {
+    if (!isPublicRoute(request)) {
+        await auth.protect();
     }
-
-    if (pathname === '/login' && session) {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-
-    return response;
-}
+});
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|api/health).*)',
+        '/((?!_next/static|_next/image|favicon.ico).*)',
     ],
 };
