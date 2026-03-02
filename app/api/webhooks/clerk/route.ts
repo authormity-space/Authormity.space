@@ -1,5 +1,8 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
+
 import { WebhookEvent } from '@clerk/nextjs/server';
 import { Webhook } from 'svix';
 import { prismaClient } from '@/lib/prisma';
