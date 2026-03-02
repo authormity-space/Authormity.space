@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, Copy, Check, RotateCcw, Save, Send } from 'lucide-react';
@@ -96,6 +97,14 @@ function ToastContainer({ toasts }: { toasts: Toast[] }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+export default function CreatePage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading…</div>}>
+            <CreatePageInner />
+        </Suspense>
+    );
+}
+
 /**
  * Create Post page — the core AI content generation interface.
  *
@@ -111,7 +120,7 @@ function ToastContainer({ toasts }: { toasts: Toast[] }) {
  * - Last 5 drafts loaded on mount as clickable history cards
  * - swipeRef query param support (shows banner when active)
  */
-export default function CreatePage() {
+function CreatePageInner() {
     const searchParams = useSearchParams();
     const swipeRef = searchParams.get('swipeRef') ?? '';
 
